@@ -1,0 +1,46 @@
+<html>
+<head>
+	<title>hi</title>
+	<style>
+html {
+	font-family: Monospace;
+}
+table {
+	border-collapse: collapse;
+}
+th,td {
+	border: 1px solid black;
+	padding: 4px;
+}
+	</style>
+</head>
+<body>
+	<script type="module">
+import createTable from "./table.js"
+
+const getStorage = (key, def) => {
+	const item = localStorage.getItem(key)
+	return item ? JSON.parse(item) : def
+}
+
+const setStorage = (key, data) => localStorage.setItem(key, JSON.stringify(data))
+
+const table = createTable({
+	columns: [ "name", "age", "alive", ],
+	columns: {
+		name: "string",
+		age: "number",
+		alive: "boolean",
+		item: "string",
+		belief: [ "love", "hate" ],
+	},
+	data: getStorage("data", []),
+	onChange: (data) => {
+		setStorage("data", data)
+	},
+})
+
+document.body.append(table)
+	</script>
+</body>
+</html>
