@@ -26,6 +26,7 @@ const getStorage = (key, def) => {
 const setStorage = (key, data) => localStorage.setItem(key, JSON.stringify(data))
 
 const table = createTable({
+	readonly: false,
 	columns: {
 		name: "string",
 		age: "number",
@@ -36,10 +37,11 @@ const table = createTable({
 	data: getStorage("data", []),
 	onChange: (data) => {
 		setStorage("data", data)
+		console.log("changed:", data)
 	},
 })
 
-document.body.append(table)
+document.body.append(table.dom)
 	</script>
 </body>
 </html>

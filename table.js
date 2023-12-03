@@ -1,4 +1,3 @@
-// TODO: deal with incorrect initial data
 // TODO: drag & drop index to reorder
 // TODO: undo / redo
 
@@ -12,7 +11,9 @@ function h(tag, props, children) {
 	if (children !== undefined) {
 		if (Array.isArray(children)) {
 			for (const child of children) {
-				el.appendChild(child)
+				if (child) {
+					el.appendChild(child)
+				}
 			}
 		} else if (children instanceof HTMLElement) {
 			el.appendChild(children)
@@ -23,9 +24,41 @@ function h(tag, props, children) {
 	return el
 }
 
+// TODO: is this not as performant?
+const cloneData = (data) => JSON.parse(JSON.stringify(data))
+
+function createEvent() {
+	const actions = []
+	return {
+		count: () => actions.length,
+		clear: () => actions = [],
+		// TODO: return canceller
+		add: (action) => actions.push(action),
+		trigger: (...args) => actions.forEach((action) => action(...args)),
+	}
+}
+
 export default function createTable(opt = {}) {
-	if (!opt.columns) throw new Error("Must define columns")
-	const data = opt.data ? JSON.parse(JSON.stringify(opt.data)) : []
+
+	if (!opt.columns)
+		throw new Error("Must define columns")
+
+	// TODO: deal with incorrect initial data
+	const data = opt.data ? cloneData(opt.data) : []
+	const changeEvent = createEvent()
+
+	if (opt.onChange) {
+		changeEvent.add(opt.onChange)
+	}
+
+	const change = () => {
+		if (changeEvent.count() > 0) {
+			changeEvent.trigger(cloneData(data))
+		}
+	}
+
+	const readonly = opt.readonly === true
+
 	const renderRow = (item, i) => h("tr", {
 		index: i,
 	}, [
@@ -34,13 +67,15 @@ export default function createTable(opt = {}) {
 			if (ty === "string" || ty === "number") {
 				return h("td", {
 					name: name,
-					contentEditable: true,
+					contentEditable: !readonly,
 					onpaste: (e) => {
+						if (readonly) return
 						e.preventDefault()
 						const text = e.clipboardData.getData("text/plain")
 						document.execCommand("insertText", false, text)
 					},
 					oninput: (e) => {
+						if (readonly) return
 						const cell = e.target
 						const row = cell.parentNode
 						let val = cell.textContent
@@ -49,13 +84,13 @@ export default function createTable(opt = {}) {
 							val = cell.textContent.replace(/[^\d.]+/g, "")
 							if (val === oldVal) {
 								data[row.index][cell.name] = Number(val)
-								if (opt.onChange) opt.onChange(data)
+								change()
 							} else {
 								cell.textContent = val
 							}
 						} else {
 							data[row.index][cell.name] = val
-							if (opt.onChange) opt.onChange(data)
+							change()
 						}
 					},
 				}, item[name] ?? "")
@@ -67,20 +102,24 @@ export default function createTable(opt = {}) {
 					oninput: (e) => {
 						const cell = e.target
 						const row = cell.parentNode.parentNode
+						if (readonly) {
+							e.target.checked = data[row.index][cell.name]
+							return
+						}
 						const checked = cell.checked
 						data[row.index][cell.name] = checked
-						if (opt.onChange) opt.onChange(data)
+						change()
 					},
 				}))
 			} else if (Array.isArray(ty)) {
-				return h("td", {}, h("select", {
+				return h("td", {}, readonly ? item[name] ?? "" : h("select", {
 					name: name,
 					onchange: (e) => {
 						const cell = e.target
 						const row = cell.parentNode.parentNode
 						const val = cell.value
 						data[row.index][cell.name] = val
-						if (opt.onChange) opt.onChange(data)
+						change()
 					},
 				}, ty.map((option) => h("option", {
 					value: option,
@@ -90,7 +129,7 @@ export default function createTable(opt = {}) {
 				throw new Error(`Invalid column type: "${ty}"`)
 			}
 		}),
-		h("td", {}, [
+		!readonly && h("td", {}, [
 			h("button", {
 				row: i,
 				onclick: (e) => {
@@ -102,20 +141,22 @@ export default function createTable(opt = {}) {
 						child.index = i
 						child.childNodes[0].textContent = i + 1 + ""
 					})
-					if (opt.onChange) opt.onChange(data)
+					change()
 				},
 			}, "x"),
 		]),
 	])
-	const body = h("tbody", {}, data.map(renderRow))
-	return h("table", {}, [
+
+	const rowElements = h("tbody", {}, data.map(renderRow))
+
+	const tableElement = h("table", {}, [
 		h("tr", {}, [
 			h("th"),
 			...Object.keys(opt.columns).map((key) => h("th", {}, key)),
-			h("th"),
+			!readonly && h("th"),
 		]),
-		body,
-		h("tr", {}, [
+		rowElements,
+		!readonly && h("tr", {}, [
 			h("td", {}, [
 				h("button", {
 					onclick: () => {
@@ -141,4 +182,11 @@ export default function createTable(opt = {}) {
 			]),
 		]),
 	])
+
+	return {
+		dom: tableElement,
+		getData: () => cloneData(data),
+		onChange: (action) => changeEvent.add(action),
+	}
+
 }
