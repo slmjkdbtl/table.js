@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>hi</title>
+	<title>table.js</title>
 	<style>
 html {
 	font-family: Monospace;
@@ -26,7 +26,6 @@ const getStorage = (key, def) => {
 const setStorage = (key, data) => localStorage.setItem(key, JSON.stringify(data))
 
 const table = createTable({
-	columns: [ "name", "age", "alive", ],
 	columns: {
 		name: "string",
 		age: "number",

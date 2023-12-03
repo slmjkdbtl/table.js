@@ -1,4 +1,6 @@
 // TODO: deal with incorrect initial data
+// TODO: drag & drop index to reorder
+// TODO: undo / redo
 
 function h(tag, props, children) {
 	const el = document.createElement(tag)
@@ -7,24 +9,18 @@ function h(tag, props, children) {
 			el[key] = props[key]
 		}
 	}
-	if (children) {
+	if (children !== undefined) {
 		if (Array.isArray(children)) {
 			for (const child of children) {
 				el.appendChild(child)
 			}
 		} else if (children instanceof HTMLElement) {
 			el.appendChild(children)
-		} else if (typeof children === "string") {
+		} else if (typeof children === "string" || typeof children === "number") {
 			el.textContent = children
 		}
 	}
 	return el
-}
-
-const initVals = {
-	"string": "",
-	"number": 0,
-	"boolean": false,
 }
 
 export default function createTable(opt = {}) {
@@ -50,14 +46,17 @@ export default function createTable(opt = {}) {
 						let val = cell.textContent
 						if (ty === "number") {
 							const oldVal = val
-							val = cell.textContent.replace(/[^\d,.]+/g, "")
-							if (val !== oldVal) {
+							val = cell.textContent.replace(/[^\d.]+/g, "")
+							if (val === oldVal) {
+								data[row.index][cell.name] = Number(val)
+								if (opt.onChange) opt.onChange(data)
+							} else {
 								cell.textContent = val
-								return
 							}
+						} else {
+							data[row.index][cell.name] = val
+							if (opt.onChange) opt.onChange(data)
 						}
-						data[row.index][cell.name] = val
-						if (opt.onChange) opt.onChange(data)
 					},
 				}, item[name] ?? "")
 			} else if (ty === "boolean") {
@@ -120,6 +119,11 @@ export default function createTable(opt = {}) {
 			h("td", {}, [
 				h("button", {
 					onclick: () => {
+						const initVals = {
+							"string": "",
+							"number": 0,
+							"boolean": false,
+						}
 						const row = {}
 						for (const [name, ty] of Object.entries(opt.columns)) {
 							if (Array.isArray(ty)) {
