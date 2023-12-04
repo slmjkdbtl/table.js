@@ -26,6 +26,7 @@ function h(tag, props, children) {
 
 // TODO: is this not as performant?
 const cloneData = (data) => JSON.parse(JSON.stringify(data))
+const style = (sheet) => Object.entries(sheet).map(([k, v]) => `${k}: ${v};`).join("")
 
 function createEvent() {
 	const actions = []
@@ -111,6 +112,46 @@ export default function createTable(opt = {}) {
 						change()
 					},
 				}))
+			} else if (ty === "date") {
+				return h("td", {}, readonly ? item[name] : h("input", {
+					type: "date",
+					name: name,
+					value: item[name],
+					oninput: (e) => {
+						const cell = e.target
+						const row = cell.parentNode.parentNode
+						data[row.index][cell.name] = cell.value
+						change()
+					},
+				}))
+			} else if (ty === "color") {
+				// TODO: flex table cell
+				return h("td", {}, readonly ? [
+					h("div", {
+						style: style({
+							"display": "inline-block",
+							"margin-right": "4px",
+						}),
+					}, item[name]),
+					h("div", {
+						style: style({
+							"background": item[name],
+							"width": "16px",
+							"height": "16px",
+							"display": "inline-block",
+						}),
+					}),
+				] : h("input", {
+					type: "color",
+					name: name,
+					value: item[name],
+					oninput: (e) => {
+						const cell = e.target
+						const row = cell.parentNode.parentNode
+						data[row.index][cell.name] = cell.value
+						change()
+					},
+				}))
 			} else if (Array.isArray(ty)) {
 				return h("td", {}, readonly ? item[name] ?? "" : h("select", {
 					name: name,
@@ -133,7 +174,7 @@ export default function createTable(opt = {}) {
 			h("button", {
 				row: i,
 				onclick: (e) => {
-					if (!confirm("Delete this row?")) return
+					if (!confirm(`Delete row ${i + 1}?`)) return
 					const row = e.target.parentNode.parentNode
 					data.splice(row.index, 1)
 					body.removeChild(row)

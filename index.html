@@ -18,25 +18,25 @@ th,td {
 	<script type="module">
 import createTable from "./table.js"
 
-const getStorage = (key, def) => {
-	const item = localStorage.getItem(key)
-	return item ? JSON.parse(item) : def
-}
-
-const setStorage = (key, data) => localStorage.setItem(key, JSON.stringify(data))
-
 const table = createTable({
 	readonly: false,
 	columns: {
 		name: "string",
-		age: "number",
-		alive: "boolean",
 		item: "string",
+		// number -> will not allow non-number input
+		age: "number",
+		// date -> <input type="date">
+		birthdate: "date",
+		// color -> <input type="color">
+		favcolor: "color",
+		// boolean -> <input type="checkbox">
+		alive: "boolean",
+		// enum -> <select>
 		belief: [ "love", "hate" ],
 	},
-	data: getStorage("data", []),
+	data: localStorage.getItem("data") ? JSON.parse(localStorage.getItem("data")) : [],
 	onChange: (data) => {
-		setStorage("data", data)
+		localStorage.setItem("data", JSON.stringify(data))
 		console.log("changed:", data)
 	},
 })
