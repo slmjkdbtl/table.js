@@ -39,9 +39,8 @@ const table = createTable({
 		localStorage.setItem("data", JSON.stringify(data))
 		console.log("changed:", data)
 	},
+	mountTo: document.body,
 })
-
-document.body.append(table.dom)
 	</script>
 </body>
 </html>

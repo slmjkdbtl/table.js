@@ -11,9 +11,7 @@ function h(tag, props, children) {
 	if (children !== undefined) {
 		if (Array.isArray(children)) {
 			for (const child of children) {
-				if (child) {
-					el.appendChild(child)
-				}
+				if (child) el.appendChild(child)
 			}
 		} else if (children instanceof HTMLElement) {
 			el.appendChild(children)
@@ -124,24 +122,36 @@ export default function createTable(opt = {}) {
 						change()
 					},
 				}))
+			} else if (ty === "time") {
+				return h("td", {}, readonly ? item[name] : h("input", {
+					type: "time",
+					name: name,
+					value: item[name],
+					oninput: (e) => {
+						const cell = e.target
+						const row = cell.parentNode.parentNode
+						data[row.index][cell.name] = cell.value
+						change()
+					},
+				}))
 			} else if (ty === "color") {
-				// TODO: flex table cell
-				return h("td", {}, readonly ? [
-					h("div", {
-						style: style({
-							"display": "inline-block",
-							"margin-right": "4px",
-						}),
-					}, item[name]),
+				return h("td", {}, readonly ? h("div", {
+					style: style({
+						"display": "flex",
+						"flex-direction": "row",
+						"gap": "4px",
+						"align-items": "center",
+					})
+				}, [
+					h("span", {}, item[name]),
 					h("div", {
 						style: style({
 							"background": item[name],
 							"width": "16px",
 							"height": "16px",
-							"display": "inline-block",
 						}),
 					}),
-				] : h("input", {
+				]) : h("input", {
 					type: "color",
 					name: name,
 					value: item[name],
@@ -177,8 +187,8 @@ export default function createTable(opt = {}) {
 					if (!confirm(`Delete row ${i + 1}?`)) return
 					const row = e.target.parentNode.parentNode
 					data.splice(row.index, 1)
-					body.removeChild(row)
-					body.childNodes.forEach((child, i) => {
+					rowElements.removeChild(row)
+					rowElements.childNodes.forEach((child, i) => {
 						child.index = i
 						child.childNodes[0].textContent = i + 1 + ""
 					})
@@ -205,6 +215,8 @@ export default function createTable(opt = {}) {
 							"string": "",
 							"number": 0,
 							"boolean": false,
+							"date": new Date(),
+							"color": "#000000",
 						}
 						const row = {}
 						for (const [name, ty] of Object.entries(opt.columns)) {
@@ -217,12 +229,16 @@ export default function createTable(opt = {}) {
 							}
 						}
 						data.push(row)
-						body.append(renderRow(row, data.length - 1))
+						rowElements.append(renderRow(row, data.length - 1))
 					},
 				}, "+"),
 			]),
 		]),
 	])
+
+	if (opt.mountTo) {
+		opt.mountTo.appendChild(tableElement)
+	}
 
 	return {
 		dom: tableElement,
